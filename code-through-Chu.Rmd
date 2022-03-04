@@ -1,0 +1,141 @@
+---
+title: "An Introduction to Package 'rnoaa' on NOAA CO-OPS Data Usage"
+author: "Ziying Chu"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+    theme: flatly
+    highlight: haddock
+    number_sections: TRUE
+   
+---
+
+```{r include = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library("pander")
+library( dplyr )
+library(DT)
+
+```
+
+# Data Source 
+
+R package "rnoaa" provides NOAA CO-OPS (the Center for Operational Oceanographic Products and Services) data retrieved data from CO-OPS API. 
+
+## Installation
+
+Install and load package 'rnoaa' into the R session. 
+
+```{r, eval = FALSE}
+install.packages("rnoaa")
+```
+
+```{r}
+library('rnoaa')   
+```
+
+## Usage 
+
+Search for data with specifiying station_name, begin & end date and type of products. As for water level products, argument "datum" is required.'
+
+### Get monthly mean sea level data
+
+```{r}
+# Get monthly mean sea level data at Vaca Key (8723970)
+data <- coops_search(station_name = 8723970, 
+                     begin_date = 20120301, 
+                     end_date = 20141001, 
+                     datum = "stnd", 
+                     product = "monthly_mean")
+```
+
+It returns a list of length two, with the first one getting a list of metadata with station id, name, and location (lat & lon).
+
+```{r}
+data[[1]]
+```
+And the 2nd one of the list get the data.frame. In this case, it is monthly mean sea level data. 
+
+```{r}
+
+pander(head(data[[2]]))
+
+```
+
+*To have a clear appearance and have a research bar to find a specific entry*, **package "DT"** *was installed and applied to the table*. 
+
+```{r, eval = FALSE}
+install.packages("DT")
+```
+
+```{r}
+
+library(DT)
+datatable(data[[2]], rownames = FALSE, filter="top", 
+          options = list(pageLength = 5, scrollX=T) )
+
+```
+### Get air temperature and water temperature data
+
+```{r}
+# Get air & water temperature data at Vaca Key (8723970) during the Hurricane Katrina(Aug.23-31, 2005)
+air.temp <-   coops_search(station_name = 8723970, begin_date = 20050823,
+              end_date = 20050831, product = "air_temperature")
+water.temp <- coops_search(station_name = 8723970, begin_date = 20050823,                      end_date = 20050831, product = "water_temperature")
+
+```
+
+```{r}
+
+station.info <- air.temp[[1]]     #get station info
+air.temp <- air.temp[[2]]         #get data.frame of air temperature
+water.temp<- water.temp[[2]]      #get data.frame of water temperature
+```
+
+### Remove NA value from the dataset
+```{r}
+
+air.temp <-
+  air.temp %>% filter(!is.na( v ) )
+water.temp <-
+  water.temp %>% filter(!is.na( v ) )
+
+```
+
+
+### Plot Water Temperature and Air Temperature 
+```{r, fig.align="center", fig.width=8, fig.height=6}
+
+plot(air.temp$t, air.temp$v, 
+     type = "l", col = "red", lwd=2,
+     xlab = "time", 
+     ylab = "temperature" ,
+     main = "Water Temperature and Air Temperature differences\n during the Hurricane Katrina at Vaca Key, Florida Bay" )
+
+lines(water.temp$t, water.temp$v, 
+      col = "steelblue", lwd=2)
+
+legend("bottomright",                             # add legend at bottom right 
+       c("Air Temperature", "Water Temperature"), 
+       col = c("red","steelblue"), 
+       text.col = "black", 
+       lty = c(1,1), 
+       bg ="gray90" )
+
+```
+
+<br><br><br><br>
+
+**reference: https://cran.r-project.org/web/packages/rnoaa/rnoaa.pdf**
+
+```{css, echo = F}
+
+h1, .h1, h2, .h2, h3, .h3 {
+    margin-top: 42px;
+}
+
+```
+
